@@ -26,14 +26,14 @@ document.addEventListener("DOMContentLoaded", () => {
           participantsHTML = `
             <div class="participants-section">
               <strong>Participants:</strong>
-              <ul class="participants-list">
+              <div class="participants-list">
                 ${details.participants
                   .map(
                     (participant) =>
-                      `<li class="participant-item">${participant}</li>`
+                      `<span class="participant-item">${participant} <span class="delete-icon" title="Remove" onclick="window.unregisterParticipant('${name}', '${participant}')">&#128465;</span></span>`
                   )
                   .join("")}
-              </ul>
+              </div>
             </div>
           `;
         } else {
@@ -88,6 +88,7 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+        fetchActivities(); // Refresh activities list after signup
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
@@ -106,6 +107,25 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Error signing up:", error);
     }
   });
+
+  // Unregister participant function (global for inline onclick)
+  window.unregisterParticipant = async function(activity, email) {
+    if (!confirm(`Unregister ${email} from ${activity}?`)) return;
+    try {
+      const response = await fetch(`/activities/${encodeURIComponent(activity)}/unregister?email=${encodeURIComponent(email)}`, {
+        method: "POST"
+      });
+      const result = await response.json();
+      if (response.ok) {
+        fetchActivities();
+      } else {
+        alert(result.detail || "Failed to unregister participant.");
+      }
+    } catch (error) {
+      alert("Error unregistering participant.");
+      console.error(error);
+    }
+  };
 
   // Initialize app
   fetchActivities();
