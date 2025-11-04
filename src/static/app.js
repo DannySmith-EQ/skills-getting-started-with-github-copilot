@@ -20,11 +20,37 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const spotsLeft = details.max_participants - details.participants.length;
 
+        // Create participants list HTML
+        let participantsHTML = "";
+        if (details.participants.length > 0) {
+          participantsHTML = `
+            <div class="participants-section">
+              <strong>Participants:</strong>
+              <div class="participants-list">
+                ${details.participants
+                  .map(
+                    (participant) =>
+                      `<span class="participant-item">${participant} <span class="delete-icon" title="Remove" onclick="window.unregisterParticipant('${name}', '${participant}')">&#128465;</span></span>`
+                  )
+                  .join("")}
+              </div>
+            </div>
+          `;
+        } else {
+          participantsHTML = `
+            <div class="participants-section">
+              <strong>Participants:</strong>
+              <p class="no-participants">No participants yet.</p>
+            </div>
+          `;
+        }
+
         activityCard.innerHTML = `
           <h4>${name}</h4>
           <p>${details.description}</p>
           <p><strong>Schedule:</strong> ${details.schedule}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+          ${participantsHTML}
         `;
 
         activitiesList.appendChild(activityCard);
@@ -62,6 +88,7 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+        fetchActivities(); // Refresh activities list after signup
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
@@ -80,6 +107,25 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Error signing up:", error);
     }
   });
+
+  // Unregister participant function (global for inline onclick)
+  window.unregisterParticipant = async function(activity, email) {
+    if (!confirm(`Unregister ${email} from ${activity}?`)) return;
+    try {
+      const response = await fetch(`/activities/${encodeURIComponent(activity)}/unregister?email=${encodeURIComponent(email)}`, {
+        method: "POST"
+      });
+      const result = await response.json();
+      if (response.ok) {
+        fetchActivities();
+      } else {
+        alert(result.detail || "Failed to unregister participant.");
+      }
+    } catch (error) {
+      alert("Error unregistering participant.");
+      console.error(error);
+    }
+  };
 
   // Initialize app
   fetchActivities();
